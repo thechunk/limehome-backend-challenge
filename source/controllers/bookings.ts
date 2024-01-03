@@ -67,19 +67,46 @@ async function isBookingPossible(booking: Booking): Promise<bookingOutcome> {
     }
 
     // check 3 : Unit is available for the check-in date
-    let isUnitAvailableOnCheckInDate = await prisma.booking.findMany({
+    let isUnitAvailableOnCheckInDate = (await prisma.booking.findMany({
         where: {
             AND: {
                 checkInDate: {
-                    equals: new Date(booking.checkInDate),
+                    lte: new Date(booking.checkInDate),
                 },
                 unitID: {
                     equals: booking.unitID,
                 }
             }
         }
+    })).filter((occupiedBooking) => {
+        // Runtime array filter op - keep only bookings which are overlapped by my check-in date
+        const checkOutTime = occupiedBooking.checkInDate.getTime() + occupiedBooking.numberOfNights * 24 * 60 * 60 * 1000;
+        return (new Date(booking.checkInDate).getTime()) <= checkOutTime;
     });
     if (isUnitAvailableOnCheckInDate.length > 0) {
+        return {result: false, reason: "For the given check-in date, the unit is already occupied"};
+    }
+
+    // check 4: Unit is available for duration of stay
+    let isUnitAvailableDuringStay = await prisma.booking.findMany({
+        where: {
+            AND: [{
+                checkInDate: {
+                    gte: new Date(booking.checkInDate),
+                },
+            }, {
+                checkInDate: {
+                    // Allow booking when check-in is the same as occupied check-out date
+                    lte: new Date(new Date(booking.checkInDate).getTime() + booking.numberOfNights * 24 * 60 * 60 * 1000)
+                },
+            }, {
+                unitID: {
+                    equals: booking.unitID,
+                },
+            }],
+        },
+    });
+    if (isUnitAvailableDuringStay.length > 0) {
         return {result: false, reason: "For the given check-in date, the unit is already occupied"};
     }
 
