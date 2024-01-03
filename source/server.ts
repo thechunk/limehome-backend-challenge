@@ -15,7 +15,20 @@ app.use(express.json());
 
 // Swagger
 const swaggerUi = require('swagger-ui-express');
-const swaggerDocument = require('./swagger.json');
+const swaggerDocument = require('swagger-jsdoc')({
+    definition: {
+        openapi: '3.0.1',
+        info: {
+            title: 'OpenAPI definition',
+            version: 'v0'
+        },
+        servers: [{
+            url: 'http://localhost:8000',
+            description: 'Generated server url'
+        }],
+    },
+    apis: ['./source/routes/*.ts']
+});
 app.use('/api-docs', swaggerUi.serve);
 app.get('/api-docs', swaggerUi.setup(swaggerDocument));
 
