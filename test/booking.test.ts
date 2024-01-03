@@ -40,9 +40,8 @@ afterAll(async () => {
 });
 
 describe('Booking API', () => {
-
     test('Create fresh booking', async () => {
-        const response = await axios.post('http://localhost:8000/api/v1/booking', GUEST_A_UNIT_1);
+        const response = await axios.put('http://localhost:8000/api/v1/booking', GUEST_A_UNIT_1);
 
         expect(response.status).toBe(200);
         expect(response.data.guestName).toBe(GUEST_A_UNIT_1.guestName);
@@ -52,7 +51,7 @@ describe('Booking API', () => {
 
     test('Same guest same unit booking', async () => {
         // Create first booking
-        const response1 = await axios.post('http://localhost:8000/api/v1/booking', GUEST_A_UNIT_1);
+        const response1 = await axios.put('http://localhost:8000/api/v1/booking', GUEST_A_UNIT_1);
         expect(response1.status).toBe(200);
         expect(response1.data.guestName).toBe(GUEST_A_UNIT_1.guestName);
         expect(response1.data.unitID).toBe(GUEST_A_UNIT_1.unitID);
@@ -60,7 +59,7 @@ describe('Booking API', () => {
         // Guests want to book the same unit again
         let error: any;
         try {
-            await axios.post('http://localhost:8000/api/v1/booking', GUEST_A_UNIT_1);
+            await axios.put('http://localhost:8000/api/v1/booking', GUEST_A_UNIT_1);
         } catch (e) {
             error = e;
         }
@@ -72,7 +71,7 @@ describe('Booking API', () => {
 
     test('Same guest different unit booking', async () => {
         // Create first booking
-        const response1 = await axios.post('http://localhost:8000/api/v1/booking', GUEST_A_UNIT_1);
+        const response1 = await axios.put('http://localhost:8000/api/v1/booking', GUEST_A_UNIT_1);
         expect(response1.status).toBe(200);
         expect(response1.data.guestName).toBe(GUEST_A_UNIT_1.guestName);
         expect(response1.data.unitID).toBe(GUEST_A_UNIT_1.unitID);
@@ -80,7 +79,7 @@ describe('Booking API', () => {
         // Guest wants to book another unit
         let error: any;
         try {
-            await axios.post('http://localhost:8000/api/v1/booking', GUEST_A_UNIT_2);
+            await axios.put('http://localhost:8000/api/v1/booking', GUEST_A_UNIT_2);
         } catch (e) {
             error = e;
         }
@@ -92,7 +91,7 @@ describe('Booking API', () => {
 
     test('Different guest same unit booking', async () => {
         // Create first booking
-        const response1 = await axios.post('http://localhost:8000/api/v1/booking', GUEST_A_UNIT_1);
+        const response1 = await axios.put('http://localhost:8000/api/v1/booking', GUEST_A_UNIT_1);
         expect(response1.status).toBe(200);
         expect(response1.data.guestName).toBe(GUEST_A_UNIT_1.guestName);
         expect(response1.data.unitID).toBe(GUEST_A_UNIT_1.unitID);
@@ -100,7 +99,7 @@ describe('Booking API', () => {
         // GuestB trying to book a unit that is already occupied
         let error: any;
         try {
-            await axios.post('http://localhost:8000/api/v1/booking', GUEST_B_UNIT_1);
+            await axios.put('http://localhost:8000/api/v1/booking', GUEST_B_UNIT_1);
         } catch (e) {
             error = e;
         }
@@ -112,14 +111,14 @@ describe('Booking API', () => {
 
     test('Different guest same unit booking different date', async () => {
         // Create first booking
-        const response1 = await axios.post('http://localhost:8000/api/v1/booking', GUEST_A_UNIT_1);
+        const response1 = await axios.put('http://localhost:8000/api/v1/booking', GUEST_A_UNIT_1);
         expect(response1.status).toBe(200);
         expect(response1.data.guestName).toBe(GUEST_A_UNIT_1.guestName);
 
         // GuestB trying to book a unit that is already occupied
         let error: any;
         try {
-            await axios.post('http://localhost:8000/api/v1/booking', {
+            await axios.put('http://localhost:8000/api/v1/booking', {
                 unitID: '1',
                 guestName: 'GuestB',
                 checkInDate: new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -135,7 +134,7 @@ describe('Booking API', () => {
 
     test('Different guest same unit booking different date within stay duration', async () => {
         // Create first booking
-        const response1 = await axios.post('http://localhost:8000/api/v1/booking', GUEST_A_UNIT_1);
+        const response1 = await axios.put('http://localhost:8000/api/v1/booking', GUEST_A_UNIT_1);
         expect(response1.status).toBe(200);
         expect(response1.data.guestName).toBe(GUEST_A_UNIT_1.guestName);
 
@@ -143,7 +142,7 @@ describe('Booking API', () => {
         let error: any;
         const numberOfNights = 5
         try {
-            await axios.post('http://localhost:8000/api/v1/booking', {
+            await axios.put('http://localhost:8000/api/v1/booking', {
                 unitID: '1',
                 guestName: 'GuestB',
                 checkInDate: new Date(new Date().getTime() - numberOfNights * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
