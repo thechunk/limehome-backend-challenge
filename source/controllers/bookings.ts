@@ -2,11 +2,19 @@ import { Request, Response, NextFunction } from 'express';
 import prisma from '../prisma'
 
 interface Booking {
+    id: number | undefined;
     guestName: string;
     unitID: string;
     checkInDate: Date;
     numberOfNights: number;
-}
+};
+type bookingOutcome = {
+    result: boolean,
+    reason: string
+};
+type updateInput = {
+    numberOfNights: number
+};
 
 const healthCheck = async (req: Request, res: Response, next: NextFunction) => {
     return res.status(200).json({
@@ -17,9 +25,14 @@ const healthCheck = async (req: Request, res: Response, next: NextFunction) => {
 const createBooking = async (req: Request, res: Response, next: NextFunction) => {
     const booking: Booking = req.body;
 
-    let outcome = await isBookingPossible(booking);
-    if (!outcome.result) {
-        return res.status(400).json(outcome.reason);
+    let bookingOutcome = await isBookingPossible(booking);
+    if (!bookingOutcome.result) {
+        return res.status(400).json(bookingOutcome.reason);
+    }
+
+    let schedulingOutcome = await isSchedulingPossible(booking);
+    if (!schedulingOutcome.result) {
+        return res.status(400).json(schedulingOutcome.reason);
     }
 
     let bookingResult = await prisma.booking.create({
@@ -34,7 +47,35 @@ const createBooking = async (req: Request, res: Response, next: NextFunction) =>
     return res.status(200).json(bookingResult);
 }
 
-type bookingOutcome = {result:boolean, reason:string};
+const modifyBooking = async (req: Request, res: Response, next: NextFunction) => {
+    const data = req.body;
+    const where = {
+        guestName: data.guestName,
+        unitID: data.unitID,
+        checkInDate: new Date(data.checkInDate),
+    };
+
+    const booking = await prisma.booking.findFirst({ where: where });
+    const updateData: updateInput = { numberOfNights: data.numberOfNights }
+
+    let extendOutcome = await isExtendPossible(booking, updateData);
+    if (!extendOutcome.result) {
+        return res.status(400).json(extendOutcome.reason);
+    }
+
+    // isExtendPossible returns if booking does not exist
+    let schedulingOutcome = await isSchedulingPossible({ ...booking!, ...updateData });
+    if (!schedulingOutcome.result) {
+        return res.status(400).json(schedulingOutcome.reason);
+    }
+
+    const updateResult = await prisma.booking.update({
+        where: { id: booking?.id },
+        data: updateData,
+    });
+
+    return res.status(200).json(updateResult);
+}
 
 async function isBookingPossible(booking: Booking): Promise<bookingOutcome> {
     // check 1 : The Same guest cannot book the same unit multiple times
@@ -66,10 +107,18 @@ async function isBookingPossible(booking: Booking): Promise<bookingOutcome> {
         return {result: false, reason: "The same guest cannot be in multiple units at the same time"};
     }
 
+    return { result: true, reason: "OK" };
+}
+
+async function isSchedulingPossible(booking: Booking): Promise<bookingOutcome> {
     // check 3 : Unit is available for the check-in date
     let isUnitAvailableOnCheckInDate = (await prisma.booking.findMany({
         where: {
             AND: {
+                id: {
+                    // Exclude this booking from check
+                    not: booking.id,
+                },
                 checkInDate: {
                     lte: new Date(booking.checkInDate),
                 },
@@ -91,6 +140,11 @@ async function isBookingPossible(booking: Booking): Promise<bookingOutcome> {
     let isUnitAvailableDuringStay = await prisma.booking.findMany({
         where: {
             AND: [{
+                id: {
+                    // Exclude this booking from check
+                    not: booking.id,
+                },
+            }, {
                 checkInDate: {
                     gte: new Date(booking.checkInDate),
                 },
@@ -110,7 +164,19 @@ async function isBookingPossible(booking: Booking): Promise<bookingOutcome> {
         return {result: false, reason: "For the given check-in date, the unit is already occupied"};
     }
 
-    return {result: true, reason: "OK"};
+    return { result: true, reason: "OK" };
 }
 
-export default { healthCheck, createBooking }
+async function isExtendPossible(booking: Booking | null, data: updateInput): Promise<bookingOutcome> {
+    if (booking === null) {
+        return { result: false, reason: 'This booking does not exist.' };
+    }
+
+    if (data.numberOfNights <= booking.numberOfNights) {
+        return { result: false, reason: 'This booking cannot be shortened.' };
+    }
+
+    return { result: true, reason: "OK" };
+}
+
+export default { healthCheck, createBooking, modifyBooking }

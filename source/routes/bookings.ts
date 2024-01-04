@@ -19,6 +19,8 @@ const router = express.Router();
  *         numberOfNights:
  *           type: integer
  *           format: int32
+ *           minimum: 1
+ *           description: Must be greater than original value if extending booking
  *     HealthResponse:
  *       type: object
  *       properties:
@@ -69,8 +71,25 @@ const router = express.Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *   patch:
+ *     summary: Modify booking
+ *     tags: [booking-controller]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/BookingInput'
+ *     responses:
+ *       200:
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
  */
 router.get('/', controller.healthCheck);
 router.put('/api/v1/booking/', controller.createBooking);
+router.patch('/api/v1/booking/', controller.modifyBooking);
 
 export = router;
